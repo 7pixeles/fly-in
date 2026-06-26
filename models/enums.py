@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 # ENUMS
 class ZoneType(Enum):
     NORMAL = 1      # 1 turno de costo
