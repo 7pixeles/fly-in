@@ -6,7 +6,7 @@ class ZoneType(Enum):
     NORMAL = 1      # 1 turno de costo
     RESTRICTED = 2  # 2 turnos de costo
     PRIORITY = 1    # 1 turno pero preferido en pathfinding
-    BLOCKED = None  # No se puede pasar por esta zona
+    BLOCKED = float('inf')  # No se puede pasar por esta zona
 
 
 class DroneState(Enum):
