@@ -6,11 +6,8 @@ from models.zone import Zone
 
 
 class Drone(BaseModel):
-    """Representa un dron individual en el sistema de navegación.
- 
-    Un dron tiene una posición actual, una ruta planeada, y un estado que
-    cambia durante la simulación.
- 
+    """Modelo de Drone para el sistema de enrutamiento de drones.
+
     Atributos:
         id: Identificador único del dron (> 0).
         current_zone: Zona donde se encuentra actualmente.
@@ -35,6 +32,7 @@ class Drone(BaseModel):
     @field_validator('planned_route')
     @classmethod
     def route_validity(cls, value, info):
+        """Valida que la ruta empiece en current_zone y termine en end_zone."""
         if not value:
             return value
 
@@ -54,7 +52,8 @@ class Drone(BaseModel):
             route: Lista de zonas a atravesar.
  
         Raises:
-            ValueError: Si la ruta no empieza en current_zone o no termina en end_zone.
+            ValueError: 
+            Si la ruta no empieza en current_zone o no termina en end_zone.
         """
         if route and route[0] != self.current_zone:
             raise ValueError(
@@ -107,7 +106,8 @@ class Drone(BaseModel):
         if next_zone != expected_next:
             raise ValueError(
                 f"Intento de mover a {next_zone.name}, "
-                f"pero el siguiente paso es {expected_next.name if expected_next else 'ninguno'}"
+                f"pero el siguiente paso es "
+                f"{expected_next.name if expected_next else 'ninguno'}"
             )
  
         # Remover la zona actual de la ruta (ahora es la nueva zona)

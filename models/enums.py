@@ -3,18 +3,36 @@ from enum import Enum
 
 # ENUMS
 class ZoneType(Enum):
-    NORMAL = 1      # 1 turno de costo
-    RESTRICTED = 2  # 2 turnos de costo
-    PRIORITY = 1    # 1 turno pero preferido en pathfinding
-    BLOCKED = float('inf')  # No se puede pasar por esta zona
+    """Tipos de zonas en la red de navegación.
+ 
+    Atributos:
+        NORMAL: Zona estándar con costo de 1 turno.
+        RESTRICTED: Zona sensible con costo de 2 turnos.
+        PRIORITY: Zona preferida con costo de 1 turno.
+        BLOCKED: Zona inaccesible (no se puede entrar).
+    """
+
+    NORMAL = 1
+    RESTRICTED = 2
+    PRIORITY = 1
+    BLOCKED = float('inf')
 
 
 class DroneState(Enum):
-    IDLE = "idle"               # En una zona, esperando
-    MOVING = "moving"           # Transitando entre zonas
-    IN_TRANSIT = "in_transit"   # En vuelo hacia restricted (ocupando conexión)
-    WAITING = "waiting"         # Bloqueaado por ocupación de zona o conexión
-    DELIVERED = "delivered"     # Ha llegado a la zona final
+    """Estados posibles de un dron durante la simulación.
+ 
+    Atributos:
+        IDLE: Dron esperando en una zona.
+        MOVING: Dron en movimiento normal hacia siguiente zona.
+        IN_TRANSIT: Dron en vuelo hacia zona restringida (ocupa conexión).
+        DELIVERED: Dron ha llegado al destino final.
+        WAITING: Dron bloqueado (capacidad llena o conflicto).
+    """
+    IDLE = "idle"
+    MOVING = "moving"
+    IN_TRANSIT = "in_transit"
+    DELIVERED = "delivered"
+    WAITING = "waiting"
 
 
 class Color(str, Enum):

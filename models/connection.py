@@ -5,11 +5,8 @@ from models.zone import Zone
 
 
 class Connection(BaseModel):
-    """Representa una conexión bidireccional entre dos zonas.
- 
-    Una conexión es una arista del grafo que permite movimiento entre
-    dos zonas adyacentes, con límites de capacidad.
- 
+    """Modelo de Conexión para el sistema de enrutamiento de drones.
+
     Atributos:
         zone_a: Primera zona conectada.
         zone_b: Segunda zona conectada.
@@ -20,29 +17,42 @@ class Connection(BaseModel):
 
     zone_a: Zone
     zone_b: Zone
-    max_capacity: int = Field(default=1, gt=0)
-    current_occupancy: int = Field(default=0, ge=0)
+    max_capacity: int = Field(
+        default=1, gt=0, description="Capacidad máxima debe ser > 0"
+    )
+    current_occupancy: int = Field(
+        default=0, ge=0, description="Ocupación actual debe ser >= 0"
+    )
 
     @field_validator('zone_a', 'zone_b')
     @classmethod
     def zones_different(cls, value, info):
+        """Valida que zone_a y zone_b no sean la misma zona."""
         if info.field_name == 'zone_b' and value == info.data.get('zone_a'):
             raise ValueError("No puedes conectar una zona consigo misma")
 
     def connects(self, zone_a: Zone, zone_b: Zone) -> bool:
-        '''Verifica si esta conexión conecta las dos zonas dadas'''
+        """Comprueba si esta conexión une las dos zonas dadas.
+ 
+        Args:
+            zone_a: Primera zona.
+            zone_b: Segunda zona.
+ 
+        Returns:
+            True si la conexión une estas zonas (en cualquier dirección).
+        """
         return ((self.zone_a == zone_a and self.zone_b == zone_b) or
                 (self.zone_a == zone_b and self.zone_b == zone_a))
 
     def get_other_zone(self, from_zone: Zone) -> Optional[Zone]:
         """Retorna el otro extremo de la conexión.
-
+ 
         Args:
             from_zone: La zona de origen.
-
+ 
         Returns:
             La zona destino al otro extremo de la conexión.
-
+ 
         Raises:
             ValueError: Si from_zone no es parte de esta conexión.
         """
