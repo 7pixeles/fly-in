@@ -4,7 +4,7 @@ from enum import Enum
 # ENUMS
 class ZoneType(Enum):
     """Tipos de zonas en la red de navegación.
- 
+
     Atributos:
         NORMAL: Zona estándar con costo de 1 turno.
         RESTRICTED: Zona sensible con costo de 2 turnos.
@@ -20,7 +20,7 @@ class ZoneType(Enum):
 
 class DroneState(Enum):
     """Estados posibles de un dron durante la simulación.
- 
+
     Atributos:
         IDLE: Dron esperando en una zona.
         MOVING: Dron en movimiento normal hacia siguiente zona.

@@ -1,7 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
-from models.enums import ZoneType
+from utils.enums import ZoneType
 
 
 class Zone(BaseModel):
@@ -21,8 +21,8 @@ class Zone(BaseModel):
 
     name: str
     zone_type: ZoneType
-    x: int = Field(ge=0, description="Coordenada X no puede ser negativa")
-    x: int = Field(ge=0, description="Coordenada Y no puede ser negativa")
+    x: int
+    y: int
     max_drones: int = Field(
         default=1, gt=0, description="Capacidad máxima debe ser > 0"
     )
@@ -46,7 +46,7 @@ class Zone(BaseModel):
 
     def can_fit_drone(self) -> bool:
         """Comprueba si hay espacio para otro dron en esta zona.
- 
+
         Returns:
             True si current_occupancy < max_drones, False en caso contrario.
         """
@@ -54,7 +54,7 @@ class Zone(BaseModel):
 
     def add_drone(self) -> bool:
         """Intenta agregar un dron a esta zona.
- 
+
         Returns:
             True si se agregó exitosamente, False si no hay espacio.
         """
@@ -65,7 +65,7 @@ class Zone(BaseModel):
 
     def remove_drone(self) -> bool:
         """Intenta remover un dron de esta zona.
- 
+
         Returns:
             True si se removió exitosamente, False si la zona estaba vacía.
         """
@@ -76,10 +76,10 @@ class Zone(BaseModel):
 
     def get_movement_cost(self) -> int:
         """Retorna el costo en turnos para entrar a esta zona.
- 
+
         Returns:
             1 para NORMAL o PRIORITY, 2 para RESTRICTED.
- 
+
         Raises:
             ValueError: Si la zona es BLOCKED.
         """
@@ -89,7 +89,7 @@ class Zone(BaseModel):
 
     def is_accesible(self) -> bool:
         """Comprueba si esta zona es accesible para los drones.
- 
+
         Returns:
             True si zone_type != BLOCKED, False en caso contrario.
         """

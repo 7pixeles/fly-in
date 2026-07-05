@@ -1,7 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
-from models.zone import Zone
+from .zone import Zone
 
 
 class Connection(BaseModel):
@@ -13,7 +13,10 @@ class Connection(BaseModel):
         max_capacity: Máximo de drones que pueden cruzar simultáneamente (> 0).
         current_occupancy: Número actual de drones en tránsito (>= 0).
     """
-    model_config = ConfigDict(frozen=False, validate_assignment=False)
+    model_config = ConfigDict(
+        frozen=False,
+        validate_assignment=False,
+        arbitrary_types_allowed=True)
 
     zone_a: Zone
     zone_b: Zone
@@ -30,14 +33,15 @@ class Connection(BaseModel):
         """Valida que zone_a y zone_b no sean la misma zona."""
         if info.field_name == 'zone_b' and value == info.data.get('zone_a'):
             raise ValueError("No puedes conectar una zona consigo misma")
+        return value
 
     def connects(self, zone_a: Zone, zone_b: Zone) -> bool:
         """Comprueba si esta conexión une las dos zonas dadas.
- 
+
         Args:
             zone_a: Primera zona.
             zone_b: Segunda zona.
- 
+
         Returns:
             True si la conexión une estas zonas (en cualquier dirección).
         """
@@ -46,13 +50,13 @@ class Connection(BaseModel):
 
     def get_other_zone(self, from_zone: Zone) -> Optional[Zone]:
         """Retorna el otro extremo de la conexión.
- 
+
         Args:
             from_zone: La zona de origen.
- 
+
         Returns:
             La zona destino al otro extremo de la conexión.
- 
+
         Raises:
             ValueError: Si from_zone no es parte de esta conexión.
         """
@@ -68,7 +72,7 @@ class Connection(BaseModel):
 
     def can_fit_drone(self) -> bool:
         """Comprueba si hay capacidad para otro dron en tránsito.
- 
+
         Returns:
             True si current_occupancy < max_capacity, False en caso contrario.
         """
@@ -76,7 +80,7 @@ class Connection(BaseModel):
 
     def add_drone(self) -> bool:
         """Intenta agregar un dron a esta conexión.
- 
+
         Returns:
             True si se agregó exitosamente, False si no hay capacidad.
         """
@@ -88,7 +92,7 @@ class Connection(BaseModel):
 
     def remove_drone(self) -> bool:
         """Intenta remover un dron de esta conexión.
- 
+
         Returns:
             True si se removió exitosamente, False si estaba vacía.
         """

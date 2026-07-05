@@ -1,7 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
-from models.enums import DroneState
+from utils.enums import DroneState
 from models.zone import Zone
 
 
@@ -15,7 +15,8 @@ class Drone(BaseModel):
         end_zone: Zona destino final.
         planned_route: Ruta planeada (lista de zonas a atravesar).
         state: Estado actual del dron (IDLE, MOVING, etc.).
-        turns_in_flight: Turnos restantes si está en tránsito hacia zona restringida.
+        turns_in_flight:
+            Turnos restantes si está en tránsito hacia zona restringida.
     """
     model_config = ConfigDict(frozen=False, validate_assignment=False)
 
@@ -47,12 +48,12 @@ class Drone(BaseModel):
 
     def set_route(self, route: list[Zone]) -> None:
         """Asigna una nueva ruta al dron.
- 
+
         Args:
             route: Lista de zonas a atravesar.
- 
+
         Raises:
-            ValueError: 
+            ValueError:
             Si la ruta no empieza en current_zone o no termina en end_zone.
         """
         if route and route[0] != self.current_zone:
@@ -64,7 +65,7 @@ class Drone(BaseModel):
 
     def get_next_zone(self) -> Optional[Zone]:
         """Retorna el siguiente destino en la ruta.
- 
+
         Returns:
             La próxima zona a visitar, o None si ya no hay ruta.
         """
@@ -74,7 +75,7 @@ class Drone(BaseModel):
 
     def get_steps_remaining(self) -> int:
         """Cuenta cuántos movimientos faltan hasta el destino.
- 
+
         Returns:
             Número de pasos restantes (len(route) - 1).
         """
@@ -82,7 +83,7 @@ class Drone(BaseModel):
 
     def has_route_planned(self) -> bool:
         """Comprueba si el dron tiene una ruta asignada.
- 
+
         Returns:
             True si planned_route no está vacía, False en caso contrario.
         """
@@ -90,18 +91,18 @@ class Drone(BaseModel):
 
     def advance_position(self, next_zone: Zone) -> None:
         """Mueve el dron a la siguiente zona.
- 
+
         Actualiza current_zone y elimina el primer elemento de planned_route.
- 
+
         Args:
             next_zone: La zona a la que moverse.
- 
+
         Raises:
             ValueError: Si next_zone no es el siguiente paso en la ruta.
         """
         if not self.has_route_planned():
             raise ValueError(f"Dron {self.id} no tiene ruta planeada")
- 
+
         expected_next = self.get_next_zone()
         if next_zone != expected_next:
             raise ValueError(
@@ -109,7 +110,7 @@ class Drone(BaseModel):
                 f"pero el siguiente paso es "
                 f"{expected_next.name if expected_next else 'ninguno'}"
             )
- 
+
         # Remover la zona actual de la ruta (ahora es la nueva zona)
         self.planned_route = self.planned_route[1:]
         self.current_zone = next_zone
