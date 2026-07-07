@@ -42,8 +42,10 @@ class Network(BaseModel):
         Raises:
             ValueError: Si ya existe una zona con el mismo nombre
         """
-        if zone.name not in self.zones:
-            self.zones[zone.name] = zone
+        if zone.name in self.zones:
+            raise ValueError(
+                f"Ya existe una zona con el mismo nombre: {zone.name}")
+        self.zones[zone.name] = zone
 
     def add_connection(
             self, zone_a: Zone, zone_b: Zone, max_capacity: int = 1
@@ -64,7 +66,10 @@ class Network(BaseModel):
             raise ValueError(f"'{zone_b.name}' no existe en la red")
 
         # Normalizar clave (orden independiente)
-        key = tuple(sorted([zone_a.name, zone_b.name]))
+        key = self._normalize_connection_key(
+            zone_a.name,
+            zone_b.name,
+        )
 
         if key in self.conn:
             raise ValueError(
@@ -123,8 +128,18 @@ class Network(BaseModel):
         Returns:
             La conexión si existe, None en caso contrario
         """
-        key = tuple(sorted([zone_a.name, zone_b.name]))
+        ordered = sorted((zone_a.name, zone_b.name))
+        key = (ordered[0], ordered[1])
         return self.conn.get(key)
+
+    def get_connection_count(self) -> int:
+        """
+        Retorna el número total de conexiones
+
+        Return
+            Cantidad de conexiones en la red
+        """
+        return len(self.conn)
 
     def is_connected(self, zone_a: Zone, zone_b: Zone) -> bool:
         """Comprueba si dos zonas están conectadas directamente.
@@ -170,22 +185,14 @@ class Network(BaseModel):
         """
         return len(self.zones)
 
-    def get_connection_count(self) -> int:
-        """
-        Retorna el número total de conexiones
-
-        Return
-            Cantidad de conexiones en la red
-        """
-        return len(self.conn)
-
-    def validate(self) -> bool:
+    def validate_network(self) -> bool:
         """ Valida toda la integridad de la red """
 
         # # Debug
         # print(f"DEBUG: Total conexiones: {len(self.conn)}")
         # for key, conn in self.conn.items():
-        #     print(f"DEBUG: Conexión key={key}, zone_a={conn.zone_a}, zone_b={conn.zone_b}")
+        # print(f"DEBUG: Conexión key={key},
+        # zone_a={conn.zone_a}, zone_b={conn.zone_b}")
 
         # Validar que start y end existen
         if self.start_zone.name not in self.zones:
@@ -210,8 +217,9 @@ class Network(BaseModel):
         for conn in self.get_all_connections():
             if conn.zone_a is None or conn.zone_b is None:
                 raise ValueError(f"Conexión con zona None: {conn}")
-            
-            if not conn.zone_a.is_accesible() or not conn.zone_b.is_accesible():
+
+            if (not conn.zone_a.is_accesible()
+                    or not conn.zone_b.is_accesible()):
                 raise ValueError(
                     f"Conexión {conn.zone_a.name}-{conn.zone_b.name} "
                     "conecta a una zona BLOCKED"
@@ -228,6 +236,15 @@ class Network(BaseModel):
             zone.current_occupancy = 0
         for conn in self.get_all_connections():
             conn.current_occupancy = 0
+
+    @staticmethod
+    def _normalize_connection_key(
+        zone_a: str,
+        zone_b: str,
+    ) -> tuple[str, str]:
+        if zone_a <= zone_b:
+            return zone_a, zone_b
+        return zone_b, zone_a
 
     def __repr__(self) -> str:
         """Representación legible de la red"""

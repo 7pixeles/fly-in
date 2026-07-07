@@ -69,6 +69,7 @@ class SimulationState(BaseModel):
             conn.zone_a.name, conn.zone_b.name)
         self.connection_occupancy[key] = count
 
+    @staticmethod
     def _normalize_connection_key(
             zone_a_name: str, zone_b_name: str) -> tuple[str, str]:
         """Normaliza la clave de conexión (orden independiente)
@@ -80,7 +81,11 @@ class SimulationState(BaseModel):
         Returns:
             Tupla ordenada alfabéticamente para comparabilidad
         """
-        return tuple(sorted(zone_a_name, zone_b_name))
+        ordered = sorted((zone_a_name, zone_b_name))
+        return (ordered[0], ordered[1])
+
+    def get_zone_occupancy(self, zone: Zone) -> int:
+        return self.zone_occupancy.get(zone.name, 0)
 
     def is_zone_full(self, zone: Zone) -> bool:
         """Comprueba si una zona está a capacidad máxima
@@ -91,7 +96,7 @@ class SimulationState(BaseModel):
         Returns:
             True si occupancy >= max_drones, False en caso contrario
         """
-        return self.get_zone_ocupancy(zone) >= zone.max_drones
+        return self.get_zone_occupancy(zone) >= zone.max_drones
 
     def is_zone_empty(self, zone: Zone) -> bool:
         """Comprueba si una zona está vacía
@@ -174,7 +179,7 @@ class SimulationState(BaseModel):
 
         return len(self.delivered_drones) == len(self.drones)
 
-    def mark_drone_delivered(self, drone_id: Drone) -> None:
+    def mark_drone_delivered(self, drone_id: int) -> None:
         """Marca un dron como entregado
 
         Args:
@@ -194,7 +199,6 @@ class SimulationState(BaseModel):
         Returns:
             Lista de drones no entregados.
         """
-
         return [
             drone for drone_id, drone in self.drones.items()
             if drone_id not in self.delivered_drones

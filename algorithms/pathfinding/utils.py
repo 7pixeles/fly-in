@@ -23,14 +23,14 @@ def _can_enter_zone(zone: Zone, occupancy_zone: dict[str, int],
     """
     if not zone.is_accesible():
         return False
-    
+
     current_occupancy = occupancy_zone.get(zone.name, 0)
     entering_drones = len(planned_moves.get(zone.name, []))
     post_move_occupancy = current_occupancy + entering_drones + 1
 
     if post_move_occupancy > zone.max_drones:
         return False
-    
+
     return True
 
 
@@ -38,10 +38,10 @@ def create_initial_assigment(
         route_by_drone: dict[int, list[list[Zone]]]
         ) -> dict[int, list[Zone]]:
     """Crea asignación inicial: cada dron en su primera (mejor) ruta
-    
+
     Parámetros:
         route_by_drone: {dron_id: [ruta_A, ruta_B, ruta_C]}
-        
+
     Returns:
         {dron_id: ruta_A}
     """
@@ -52,12 +52,13 @@ def create_initial_assigment(
         if not route:
             raise ValueError(f"Dron {dron_id} no tiene rutas disponibles")
         assignation[dron_id] = route[0]
-    
+
     return assignation
 
 
-def ev_assignment(assignment: dict[int, list[Zone]],
-                        network: Network, drones: list[Drone]) -> int:
+def ev_assignment(
+        assignment: dict[int, list[Zone]],
+        network: Network, drones: list[Drone]) -> int:
     """Simula una asignación de rutas y retorna el valor estimado.
 
     Parámetros:
@@ -68,7 +69,7 @@ def ev_assignment(assignment: dict[int, list[Zone]],
     Returns:
         - int: Turno en que el último dron llegó
             (o penalización si hay deadlocks)
-    
+
     Nota:
         - Crea copias de drones para simular sin afectar originales
         - Respeta capacidades de zona y conexiones
@@ -87,7 +88,7 @@ def ev_assignment(assignment: dict[int, list[Zone]],
         drone.set_route(route)
 
     # Copiar estado de red (solo ocupancias)
-    occupancy_zone = {}
+    occupancy_zone: dict[str, int] = {}
     for zone in network.get_all_zones():
         occupancy_zone[zone.name] = 0
 
@@ -96,7 +97,7 @@ def ev_assignment(assignment: dict[int, list[Zone]],
     occupancy_zone[initial_zone.name] = len(simulated_drones)
 
     turn = 0
-    delivered = set()
+    delivered: set[int] = set()
     turns_without_movement = 0
     max_turns = 500
 
@@ -107,16 +108,16 @@ def ev_assignment(assignment: dict[int, list[Zone]],
         if turn > max_turns:
             # Penalización por deadlock
             return max_turns
-        
+
         # Paso 1: Recolectar intentos de movimiento
-        valid_moves = {}
+        valid_moves: dict[str, list[Drone]] = {}
 
         for dron in simulated_drones:
             if dron.id in delivered:
-                continue # Dron ya entregado
-            
+                continue
+
             next_zone = dron.get_next_zone()
-            
+
             if next_zone is None:
                 delivered.add(dron.id)
                 continue
@@ -131,6 +132,10 @@ def ev_assignment(assignment: dict[int, list[Zone]],
 
         for name_zone, dron_to_move in valid_moves.items():
             dest_zone = network.get_zone(name_zone)
+
+            if dest_zone is None:
+                raise ValueError(
+                    f"La zona '{name_zone}' no existe en la red")
 
             for dron in dron_to_move:
                 # Eliminar de la zona anterior
@@ -161,8 +166,9 @@ def ev_assignment(assignment: dict[int, list[Zone]],
     return turn
 
 
-def select_different_route(route: list[list[Zone]], 
-                              current: list[Zone]) -> list[Zone]:
+def select_different_route(
+        route: list[list[Zone]],
+        current: list[Zone]) -> list[Zone]:
     """Selecciona una ruta diferente de la actual.
 
     De las 3 rutas disponibles, elige una que NO sea la actual.
@@ -198,7 +204,9 @@ def calc_probability(it: int, max_it: int) -> float:
     return 0.30 * (1.0 - (it / max_it))
 
 
-def copy_assignment(assignment: dict[int, list[Zone]]) -> dict[int, list[Zone]]:
+def copy_assignment(
+        assignment: dict[int, list[Zone]]
+        ) -> dict[int, list[Zone]]:
     """Copia una asignación de rutas.
 
     Las rutas (listas de Zone) se copian (referencia),
@@ -211,16 +219,16 @@ def copy_assignment(assignment: dict[int, list[Zone]]) -> dict[int, list[Zone]]:
 
 def select_random_id(drones: list[Drone]) -> int:
     """Selecciona aleatoriamente el ID de un dron.
-    
+
     Parámetros:
         drones: Lista de drones
-    
+
     Retorna:
         int: ID de un dron aleatorio
     """
-    
+
     if not drones:
         raise ValueError("Lista de drones vacía")
-    
+
     dron = random.choice(drones)
     return dron.id

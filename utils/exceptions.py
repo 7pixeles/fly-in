@@ -17,4 +17,3 @@ class DijkstraError(Exception):
 class SimulationError(Exception):
     """Error durante la simulación."""
     pass
-

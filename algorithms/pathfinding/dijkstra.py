@@ -46,9 +46,9 @@ def dijkstra(
             f"La zona de destino '{end_zone.name}' está bloqueada.")
 
     # Inicializar estructuras de datos
-    distances = {}
-    previous = {}
-    unvisited = set()
+    distances: dict[str, float] = {}
+    previous: dict[str, str | None] = {}
+    unvisited: set[str] = set()
 
     for zone in network.get_all_zones():
         # Ignorar zonas bloqueadas
@@ -75,7 +75,7 @@ def dijkstra(
     # Algoritmo de Dijkstra
     while unvisited:
         # Encontrar la zona no visitada con la distancia más corta
-        current_zone_name = None
+        current_zone_name: str | None = None
         min_distance = float('inf')
 
         for name in unvisited:
@@ -92,7 +92,7 @@ def dijkstra(
         # Si llegamos a destino, reconstruir y retornar
         if current_zone_name == end_zone.name:
             path = []
-            current_node = end_zone.name
+            current_node: str | None = end_zone.name
 
             while current_node is not None:
                 # Obtener objeto Zone correspondiente
@@ -108,6 +108,7 @@ def dijkstra(
             return path[::-1]
 
         # Marcar la zona actual como visitada
+        assert current_zone_name is not None
         unvisited.remove(current_zone_name)
         current_zone = network.get_zone(current_zone_name)
 

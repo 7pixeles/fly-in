@@ -207,7 +207,7 @@ class MapParser:
 
         # Parsear metadadta
         metadata = self._parse_metadata(metadata_str)
-        max_capacity = metadata.get("max_link_capacity", 1)
+        max_capacity = int(metadata.get("max_link_capacity", 1))
 
         # Validar max_capacity
         if not isinstance(max_capacity, (int, float) or max_capacity <= 0):
@@ -426,7 +426,10 @@ class MapParser:
         seen_connections = set()
         for zone_a, zone_b, _ in self.conn_to_add:
             # Normalizar (orden independiente)
-            connection_key = tuple(sorted([zone_a, zone_b]))
+            connection_key = (
+                min(zone_a, zone_b),
+                max(zone_a, zone_b),
+            )
             if connection_key in seen_connections:
                 raise ParseError(
                     f"Conexión duplicada: '{zone_a}' - '{zone_b}'")
@@ -443,14 +446,17 @@ class MapParser:
         """
         try:
             # Obtener start y end
+            if self.start_zone_name is None or self.end_zone_name is None:
+                raise ParseError("Falta start_hub o end_hub")
+
             start = self.zones[self.start_zone_name]
             end = self.zones[self.end_zone_name]
             # Crear Network
             network = Network(start_zone=start, end_zone=end)
 
             # Agregar TODAS las zonas primero
-            for zone_name, zone in self.zones.items():
-                network.zones[zone_name] = zone
+            for zone in self.zones.values():
+                network.add_zone(zone)
 
             # Agregar todas las conexiones al network
             for (zone_a_name, zone_b_name, max_capacity) in self.conn_to_add:
@@ -459,7 +465,7 @@ class MapParser:
                 network.add_connection(zone_a, zone_b, max_capacity)
 
             # Validar DESPUÉS de agregar todo
-            network.validate()
+            network.validate_network()
             return network
 
         except ParseError:

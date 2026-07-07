@@ -1,9 +1,8 @@
 
 import random
 from copy import deepcopy
- 
-from models import Network, Drone
- 
+
+from models import Network, Drone, Zone
 from .dijkstra import dijkstra, block_route
 from utils.exceptions import DijkstraError, PathfindingError
 from .utils import (
@@ -15,26 +14,26 @@ from .utils import (
     select_random_id,
 )
 
+
 class Pathfinder:
     """Clase base abstracta para algoritmos de pathfinding."""
-    
+
     def find_routes(
             self,
             network: Network,
             drones: list[Drone]) -> tuple[list[Drone], int]:
         """Encuentra rutas para todos los drones.
-        
+
         Parámetros:
             network: Red de zonas
             drones: Lista de drones sin rutas
-        
+
         Return:
             (drones_con_rutas, turno_final_estimado)
-        
+
         Debe ser implementado por subclases.
         """
         raise NotImplementedError
-
 
 
 class HeuristicPathfinder(Pathfinder):
@@ -64,11 +63,6 @@ class HeuristicPathfinder(Pathfinder):
         self.initial_probability = initial_probability
         self.verbose = verbose
 
-        # Estado durante la ejecución
-        self.network = None
-        self.drones = None
-        self.routes_per_dron = None
-
     def find_routes(self,
                     network: Network,
                     drones: list[Drone]) -> tuple[list[Drone], int]:
@@ -85,57 +79,59 @@ class HeuristicPathfinder(Pathfinder):
         Raise:
             PathfindingError Si no existe solución
         """
-        self.network = network
-        self.drones = deepcopy(drones)
+        drones = deepcopy(drones)
 
         try:
             # FASE 1: Exploración
             if self.verbose:
                 print("Fase 1: Explorando rutas alternativas...")
-            self.routes_per_dron = self._explore_routes()
+            routes_per_dron = self._explore_routes(network, drones)
 
             # FASE 2: Búsqueda local
             if self.verbose:
                 print("Fase 2: Búsqueda local "
                       f"({self.max_iterations} iteraciones)...")
-            best_asignment, best_turn = self._local_search()
+            best_asignment, best_turn = self._local_search(network,
+                                                           drones,
+                                                           routes_per_dron)
 
             # FASE 3: Refinamientos
             if self.verbose:
                 print("Fase 3: Refinando solución...")
-            final_turn = self._manage_conflict(best_asignment)
+            final_turn = self._manage_conflict(best_asignment, network, drones)
 
             # Asignar rutas a drones
-            for dron in self.drones:
+            for dron in drones:
                 route = best_asignment[dron.id]
                 dron.set_route(route)
-            
+
             if self.verbose:
                 print(f"Pathfinding completado: {final_turn} turnos estimados")
-            
-            return self.drones, final_turn
+
+            return drones, final_turn
 
         except Exception as error:
             raise PathfindingError(f"Error en pathfinding: {error}")
-    
-    def _explore_routes(self) -> dict[int, list[list]]:
+
+    def _explore_routes(self, network: Network, drones: list[Drone]
+                        ) -> dict[int, list[list[Zone]]]:
         """ Fase 1: Genera 3 rutas alternativas por dron.
         Retorna: {dron_id: [ruta_A], ruta_b, ruta_C}
-        
+
         Raise:
             PathfindingError: Si no existe un camino para el dron
         """
 
-        dron_routes = {}
+        dron_routes: dict[int, list[list[Zone]]] = {}
 
-        for dron in self.drones:
-            alt_route = []
-            block_zone = set()
+        for dron in drones:
+            alt_route: list[list[Zone]] = []
+            block_zone: set[str] = set()
 
             for i in range(3):
                 try:
                     route = dijkstra(
-                        self.network,
+                        network,
                         dron.start_zone,
                         dron.end_zone,
                         block_zone
@@ -149,21 +145,24 @@ class HeuristicPathfinder(Pathfinder):
                         # Rellenar con la última encontrada:
                         alt_route.append(alt_route[-1])
                     break
-            
+
             if not alt_route:
                 raise PathfindingError(
                     f"No existe un camino para dron {dron.id} "
                     f"desde {dron.start_zone.name} a {dron.end_zone.name}"
                 )
-            
+
             dron_routes[dron.id] = alt_route
 
             if self.verbose:
                 print(f"  Dron {dron.id}: {len(alt_route)} ruta(s)")
 
         return dron_routes
-    
-    def _local_search(self) -> tuple[dict[int, list], int]:
+
+    def _local_search(self, network: Network,
+                      drones: list[Drone],
+                      routes_per_dron: dict[int, list[list[Zone]]]
+                      ) -> tuple[dict[int, list[Zone]], int]:
         """ Fase 2: Búsqueda local iterativa
         Realiza -100 - 500 iteraciones de hill climbing con aceptacion
         probabilística (simulated annealing)
@@ -172,14 +171,14 @@ class HeuristicPathfinder(Pathfinder):
         """
 
         # Asignación inicial: Todos en su mejor ruta
-        current_assignment = create_initial_assigment(self.routes_per_dron)
+        current_assignment = create_initial_assigment(routes_per_dron)
 
         best_assignment = copy_assignment(current_assignment)
-        best_turn = ev_assignment(best_assignment, self.network, self.drones)
+        best_turn = ev_assignment(best_assignment, network, drones)
 
         if self.verbose:
             print(f".  Asignación inicial: {best_turn} turnos")
-        
+
         iteration = 0
         no_improve = 0
 
@@ -189,22 +188,22 @@ class HeuristicPathfinder(Pathfinder):
             no_improve += 1
 
             # Paso 1: Seleccionar dron aletatorio
-            dron_id = select_random_id(self.drones)
-    
+            dron_id = select_random_id(drones)
+
             # Paso 2: Seleccionar ruta alternativa
-            available_routes = self.routes_per_dron[dron_id]
+            available_routes = routes_per_dron[dron_id]
             current_route = current_assignment[dron_id]
             new_route = select_different_route(available_routes, current_route)
 
             if new_route == current_route:
                 continue
-        
+
             # Paso 3: Crear asignación temporal
             temp_assignment = copy_assignment(current_assignment)
             temp_assignment[dron_id] = new_route
 
             # Paso 4: Evaluar
-            temp_turn = ev_assignment(temp_assignment, self.network, self.drones)
+            temp_turn = ev_assignment(temp_assignment, network, drones)
 
             # Paso 5: Aceptar o rechazar
             if temp_turn < best_turn:
@@ -212,7 +211,7 @@ class HeuristicPathfinder(Pathfinder):
                 best_turn = temp_turn
                 current_assignment = copy_assignment(temp_assignment)
                 no_improve = 0
-                
+
                 if self.verbose and iteration % 50 == 0:
                     print(f".  Iteración {iteration}: {best_turn} turnos")
 
@@ -222,7 +221,6 @@ class HeuristicPathfinder(Pathfinder):
 
                 if random.random() < probability:
                     current_assignment = copy_assignment(temp_assignment)
-
 
             # Paso 6: Criterio de parada
             if no_improve >= self.max_no_improve:
@@ -234,41 +232,42 @@ class HeuristicPathfinder(Pathfinder):
             print(f"   Mejor ruta encontrada: {best_turn} turnos")
 
         return best_assignment, best_turn
-    
-    def _manage_conflict(self, assignment: dict[int, list]) -> int:
+
+    def _manage_conflict(self,
+                         assignment: dict[int, list[Zone]],
+                         network: Network,
+                         drones: list[Drone]) -> int:
         """Fase 3: Refinamiento y simylación final.
         Realiza una última simulación completa de la mejor asignación.
-        
+
         Se podrían resolver aquí deadlocks de manera automática
-        
+
         Parámetros:
             assignment: Mejor asignación encontrada
-            
+
         Retorna:
             int: Turno final estimado
         """
-
-        return (ev_assignment(assignment, self.network, self.drones))
+        return (ev_assignment(assignment, network, drones))
 
 
 def find_routes_multidrone(
         network: Network,
         drones: list[Drone],
         pathfinder_class: type = HeuristicPathfinder,
-        **kwargs
-    ) -> tuple[list[Drone], int]:
+        **kwargs) -> tuple[list[Drone], int]:
     """ Función de conveniencia para encontrar rutas.
-    
+
     Parámetros:
         network: Red de zonas
         drones: lista de drones sin ruta
         pathfinder_class: Clase a instanciar
         **kwargs; Argumentos para el constructor del pathfinder
-        
+
     Retorna:
         (drones_con_rutas, turno_final_estimado)
-        
-    Ejemplo: 
+
+    Ejemplo:
         drones, turno = find_routes_multidrone(network, drones, verbose=True)
     """
     pathfinder = pathfinder_class(**kwargs)
