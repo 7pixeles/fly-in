@@ -24,6 +24,20 @@ class Network(BaseModel):
     zones: dict[str, Zone] = Field(default_factory=dict)
     conn: dict[tuple[str, str], Connection] = Field(default_factory=dict)
 
+    def add_zone(self, zone: Zone) -> None:
+        """Agrega una zona a la red
+
+        Args:
+            zone: la zona a agregar
+
+        Raises:
+            ValueError: Si ya existe una zona con el mismo nombre
+        """
+        if zone.name in self.zones:
+            raise ValueError(
+                f"Ya existe una zona con el mismo nombre: {zone.name}")
+        self.zones[zone.name] = zone
+
     def add_connection(
             self, zone_a: Zone, zone_b: Zone, max_capacity: int = 1
     ) -> None:
@@ -183,6 +197,16 @@ class Network(BaseModel):
                 )
 
         return True
+
+    def reset_occupancy(self) -> None:
+        """ Reinicia la ocupancia de todas las zonas y conexiones a 0
+
+        Útil para preparar la red antes de una nueva simulación
+        """
+        for zone in self.get_all_zones():
+            zone.current_occupancy = 0
+        for conn in self.get_all_connections():
+            conn.current_occupancy = 0
 
     @staticmethod
     def _normalize_connection_key(
