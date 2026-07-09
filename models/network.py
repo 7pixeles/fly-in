@@ -24,29 +24,6 @@ class Network(BaseModel):
     zones: dict[str, Zone] = Field(default_factory=dict)
     conn: dict[tuple[str, str], Connection] = Field(default_factory=dict)
 
-    @field_validator('start_zone', 'end_zone')
-    @classmethod
-    def zones_differents(cls, value: Zone, info) -> Zone:
-        """Valida que start_zone y end_zone sean diferentes"""
-        start = info.data.get('start_zone')
-        if (info.field_name == 'end_zone' and value == start):
-            raise ValueError("No puede iniciar y terminar en la misma zona")
-        return value
-
-    def add_zone(self, zone: Zone) -> None:
-        """Agrega una zona a la red
-
-        Args:
-            zone: la zona a agregar
-
-        Raises:
-            ValueError: Si ya existe una zona con el mismo nombre
-        """
-        if zone.name in self.zones:
-            raise ValueError(
-                f"Ya existe una zona con el mismo nombre: {zone.name}")
-        self.zones[zone.name] = zone
-
     def add_connection(
             self, zone_a: Zone, zone_b: Zone, max_capacity: int = 1
     ) -> None:
@@ -141,18 +118,6 @@ class Network(BaseModel):
         """
         return len(self.conn)
 
-    def is_connected(self, zone_a: Zone, zone_b: Zone) -> bool:
-        """Comprueba si dos zonas están conectadas directamente.
-
-        Args:
-            zone_a: Primera zona
-            zone_b: Segunda zona
-
-        Returns:
-            True si hay una conexión directa, False en caso contrario
-        """
-        return self.get_connection(zone_a, zone_b) is not None
-
     def get_all_zones(self) -> list[Zone]:
         """ Retorna todas las zonas de la red.
 
@@ -168,14 +133,6 @@ class Network(BaseModel):
             Lista de todas las conexiones
         """
         return list(self.conn.values())
-
-    def get_all_accesible_zones(self) -> list[Zone]:
-        """Retorna todas las zonas accesibles (not BLOCKED)
-
-        Returns
-            Lista de zonas accesibles
-        """
-        return [zone for zone in self.get_all_zones() if zone.is_accesible()]
 
     def get_zone_count(self) -> int:
         """Retorna el número total de zonas.
@@ -227,16 +184,6 @@ class Network(BaseModel):
 
         return True
 
-    def reset_occupancy(self) -> None:
-        """ Reinicia la ocupancia de todas las zonas y conexiones a 0
-
-        Útil para preparar la red antes de una nueva simulación
-        """
-        for zone in self.get_all_zones():
-            zone.current_occupancy = 0
-        for conn in self.get_all_connections():
-            conn.current_occupancy = 0
-
     @staticmethod
     def _normalize_connection_key(
         zone_a: str,
@@ -245,11 +192,3 @@ class Network(BaseModel):
         if zone_a <= zone_b:
             return zone_a, zone_b
         return zone_b, zone_a
-
-    def __repr__(self) -> str:
-        """Representación legible de la red"""
-        return (
-            f"Network(zones={self.get_zone_count()}, "
-            f"connections={self.get_connection_count()}, "
-            f"start={self.start_zone.name}, end={self.end_zone.name})"
-        )

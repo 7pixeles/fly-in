@@ -1,7 +1,6 @@
 from .connection import Connection
 from .drone import Drone
 from .network import Network
-from .simulation_state import SimulationState
 from .zone import Zone
 
 __all__ = [
@@ -10,6 +9,5 @@ __all__ = [
     "Zone",
     "Connection",
     "Drone",
-    "Network",
-    "SimulationState"
+    "Network"
 ]

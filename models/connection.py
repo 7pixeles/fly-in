@@ -1,4 +1,3 @@
-from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 from .zone import Zone
@@ -17,7 +16,6 @@ class Connection(BaseModel):
         frozen=False,
         validate_assignment=False,
         arbitrary_types_allowed=True)
-
     zone_a: Zone
     zone_b: Zone
     max_capacity: int = Field(
@@ -26,49 +24,6 @@ class Connection(BaseModel):
     current_occupancy: int = Field(
         default=0, ge=0, description="Ocupación actual debe ser >= 0"
     )
-
-    @field_validator('zone_a', 'zone_b')
-    @classmethod
-    def zones_different(cls, value, info):
-        """Valida que zone_a y zone_b no sean la misma zona."""
-        if info.field_name == 'zone_b' and value == info.data.get('zone_a'):
-            raise ValueError("No puedes conectar una zona consigo misma")
-        return value
-
-    def connects(self, zone_a: Zone, zone_b: Zone) -> bool:
-        """Comprueba si esta conexión une las dos zonas dadas.
-
-        Args:
-            zone_a: Primera zona.
-            zone_b: Segunda zona.
-
-        Returns:
-            True si la conexión une estas zonas (en cualquier dirección).
-        """
-        return ((self.zone_a == zone_a and self.zone_b == zone_b) or
-                (self.zone_a == zone_b and self.zone_b == zone_a))
-
-    def get_other_zone(self, from_zone: Zone) -> Optional[Zone]:
-        """Retorna el otro extremo de la conexión.
-
-        Args:
-            from_zone: La zona de origen.
-
-        Returns:
-            La zona destino al otro extremo de la conexión.
-
-        Raises:
-            ValueError: Si from_zone no es parte de esta conexión.
-        """
-        if from_zone == self.zone_a:
-            return self.zone_b
-
-        elif from_zone == self.zone_b:
-            return self.zone_a
-
-        raise ValueError(f"La zona {from_zone.name} no está conectada"
-                         f" por esta conexión"
-                         f"({self.zone_a.name}, {self.zone_b.name})")
 
     def can_fit_drone(self) -> bool:
         """Comprueba si hay capacidad para otro dron en tránsito.
