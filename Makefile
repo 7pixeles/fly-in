@@ -3,10 +3,9 @@ PY = python3
 VENV = .venv
 BIN = $(VENV)/bin
 
-# Code directories for linting
-CODE_DIRS = src tests
+CODE_DIRS = .
 
-.PHONY: install run debug lint lint-strict test clean visualizer
+.PHONY: install run debug lint lint-strict test clean visualiser
 
 install:
 	@echo "--- 1. Creating/Updating Virtual Environment ---"
@@ -20,22 +19,19 @@ run:
 ifndef MAP
 	$(error Usage: make run MAP=<path/to/map.txt>)
 endif
-	PYTHONPATH=. $(BIN)/python3 src/main.py $(MAP)
-
-run-all:
-	@find tests/maps -name "*.txt" | sort | while read f; do \
-		echo "--- $$f ---"; \
-		PYTHONPATH=. python3 -m src.main $$f; \
-	done
+	PYTHONPATH=. $(BIN)/python3 main.py $(MAP)
 
 debug:
-	PYTHONPATH=. python3 -m pdb src/main.py $(MAP)
+ifndef MAP
+	$(error Usage: make debug MAP=<path/to/map.txt>)
+endif
+	PYTHONPATH=. $(BIN)/python3 -m pdb main.py $(MAP)
 
 visualiser:
 ifndef MAP
-	$(error Usage: make run MAP=<path/to/map.txt>)
+	$(error Usage: make visualiser MAP=<path/to/map.txt>)
 endif
-	PYTHONPATH=. $(BIN)/python3 src/visualizer.py $(MAP)
+	PYTHONPATH=. $(BIN)/python3 visualizer.py $(MAP)
 
 lint:
 	@echo "--- Running Flake8 ---"
@@ -52,13 +48,6 @@ lint-strict:
 	@echo "--- Running Strict Linting ---"
 	$(BIN)/flake8 $(CODE_DIRS)
 	PYTHONPATH=. $(BIN)/mypy $(CODE_DIRS) --strict
-
-test:
-ifndef MAP
-	$(error Usage: make test MAP="<path/to/map.txt>")
-endif
-	@echo "--- Running Integration Tests ---"
-	PYTHONPATH=. $(BIN)/python3 tests/parser_tester.py $(MAP)
 
 clean:
 	rm -rf .mypy_cache .pytest_cache

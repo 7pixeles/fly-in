@@ -1,22 +1,25 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 
-from .zone import Zone
-from .connection import Connection
+from src.zone import Zone
+from src.connection import Connection
 
 
 class Network(BaseModel):
-    """Modelo de red para el sistema de enrutamiento de drones.
-    Define la clase Network que representa el grafo completo con zonas,
-    conexiones y estados de validación
+    """Represents the graph of zones and connections.
 
-    Atributos:
-        start_zone: Zona de inicio de todos los drones
-        end_zone: Zona destino de todos los drones
-        zones: Diccionario de zonas (nombre -> Zone)
-        connections: Diccionario de conexiones ((a,b) -> Connection)
+    The network is the core data structure that holds all zones (nodes)
+    and connections (edges). It provides methods to query neighbors,
+    retrieve connections, and validate the graph structure.
+
+    Attributes:
+        start_zone: The origin zone where all drones begin.
+        end_zone: The destination zone where drones must arrive.
+        zones: Dictionary mapping zone names to Zone objects.
+        conn: Dictionary mapping normalized keys to Connection objects.
     """
+
     model_config = ConfigDict(frozen=False, validate_assignment=False)
 
     start_zone: Zone
@@ -25,13 +28,13 @@ class Network(BaseModel):
     conn: dict[tuple[str, str], Connection] = Field(default_factory=dict)
 
     def add_zone(self, zone: Zone) -> None:
-        """Agrega una zona a la red
+        """Add a zone to the network.
 
         Args:
-            zone: la zona a agregar
+            zone: The zone to add.
 
         Raises:
-            ValueError: Si ya existe una zona con el mismo nombre
+            ValueError: If a zone with the same name already exists.
         """
         if zone.name in self.zones:
             raise ValueError(
@@ -41,30 +44,27 @@ class Network(BaseModel):
     def add_connection(
             self, zone_a: Zone, zone_b: Zone, max_capacity: int = 1
     ) -> None:
-        """Agrega una conexión bidireccional entre dos zonas.
+        """Add a bidirectional connection between two zones.
 
         Args:
-            zone_a: Primera zona
-            zone_b: Segunda zona
-            max_capacity: Capacidad máxima de la conexión (default=1)
+            zone_a: First zone of the connection.
+            zone_b: Second zone of the connection.
+            max_capacity: Maximum drones that can traverse simultaneously.
 
         Raises:
-            ValueError si alguna zona no existe o la conexión ya existe
+            ValueError: If either zone does not exist or if the
+                connection already exists.
         """
         if zone_a.name not in self.zones:
             raise ValueError(f"'{zone_a.name}' no existe en la red")
         if zone_b.name not in self.zones:
             raise ValueError(f"'{zone_b.name}' no existe en la red")
 
-        # Normalizar clave (orden independiente)
-        key = self._normalize_connection_key(
-            zone_a.name,
-            zone_b.name,
-        )
+        key = self._normalize_connection_key(zone_a.name, zone_b.name)
 
         if key in self.conn:
             raise ValueError(
-                f"Ya existe una conexión entre '{zone_a.name}'-'{zone_b.name}'"
+                f"Ya existe una conexion entre '{zone_a.name}'-'{zone_b.name}'"
             )
 
         current_zone_a = self.zones[zone_a.name]
@@ -75,32 +75,30 @@ class Network(BaseModel):
             zone_b=current_zone_b,
             max_capacity=max_capacity
         )
-
         self.conn[key] = conn
 
     def get_zone(self, name: str) -> Optional[Zone]:
-        """Busca una zona por nombre.
+        """Retrieve a zone by its name.
 
         Args:
-            name: Nombre de la zona
+            name: The name of the zone to find.
 
         Returns:
-            La zona si existe, None en caso contrario
+            The Zone object, or None if not found.
         """
         return self.zones.get(name)
 
     def get_neighbors(self, zone: Zone) -> list[Zone]:
-        """Retorna todas las zonas conectadas directamente a una zona
+        """Get all zones directly connected to the given zone.
 
         Args:
-            zone: La zona de referencia
+            zone: The zone whose neighbors to find.
 
-        Return:
-            Lista de las zonas vecinas
+        Returns:
+            List of adjacent Zone objects.
         """
-        neighbors = []
-
-        for (a, b), connection in self.conn.items():
+        neighbors: list[Zone] = []
+        for _key, connection in self.conn.items():
             if connection.zone_a == zone:
                 neighbors.append(connection.zone_b)
             elif connection.zone_b == zone:
@@ -110,99 +108,88 @@ class Network(BaseModel):
     def get_connection(
             self, zone_a: Zone, zone_b: Zone
     ) -> Optional[Connection]:
-        """Busca la conexión entre dos zonas.
+        """Get the connection between two zones.
 
         Args:
-            zone_a: primera zona
-            zone_b: segunda zona
+            zone_a: First zone.
+            zone_b: Second zone.
 
         Returns:
-            La conexión si existe, None en caso contrario
+            The Connection object, or None if no connection exists.
         """
-        ordered = sorted((zone_a.name, zone_b.name))
-        key = (ordered[0], ordered[1])
+        key = self._normalize_connection_key(zone_a.name, zone_b.name)
         return self.conn.get(key)
 
     def get_connection_count(self) -> int:
-        """
-        Retorna el número total de conexiones
+        """Get the total number of connections in the network.
 
-        Return
-            Cantidad de conexiones en la red
+        Returns:
+            Count of connections.
         """
         return len(self.conn)
 
     def get_all_zones(self) -> list[Zone]:
-        """ Retorna todas las zonas de la red.
+        """Get all zones in the network.
 
         Returns:
-            Lista de todas las zonas
+            List of all Zone objects.
         """
         return list(self.zones.values())
 
     def get_all_connections(self) -> list[Connection]:
-        """ Retorna todas las conexiones de la red
+        """Get all connections in the network.
 
         Returns:
-            Lista de todas las conexiones
+            List of all Connection objects.
         """
         return list(self.conn.values())
 
     def get_zone_count(self) -> int:
-        """Retorna el número total de zonas.
+        """Get the total number of zones in the network.
 
         Returns:
-            Cantidad de zonas en la red
+            Count of zones.
         """
         return len(self.zones)
 
     def validate_network(self) -> bool:
-        """ Valida toda la integridad de la red """
+        """Validate the network structure and connectivity.
 
-        # # Debug
-        # print(f"DEBUG: Total conexiones: {len(self.conn)}")
-        # for key, conn in self.conn.items():
-        # print(f"DEBUG: Conexión key={key},
-        # zone_a={conn.zone_a}, zone_b={conn.zone_b}")
+        Checks that start and end zones exist, are accessible,
+        and that no connections involve blocked zones.
 
-        # Validar que start y end existen
+        Returns:
+            True if the network is valid.
+
+        Raises:
+            ValueError: If any validation check fails.
+        """
         if self.start_zone.name not in self.zones:
             raise ValueError(
-                f"{self.start_zone.name} no está en la red de zonas")
+                f"{self.start_zone.name} no esta en la red de zonas")
         if self.end_zone.name not in self.zones:
             raise ValueError(
-                f"{self.end_zone.name} no está en la red de zonas"
-            )
+                f"{self.end_zone.name} no esta en la red de zonas")
 
-        # Validar que start y end son accesibles
         if not self.start_zone.is_accesible():
-            raise ValueError(
-                "start_zone no puede estar bloqueada"
-            )
+            raise ValueError("start_zone no puede estar bloqueada")
         if not self.end_zone.is_accesible():
-            raise ValueError(
-                "end_zone no puede estar bloqueada"
-            )
+            raise ValueError("end_zone no puede estar bloqueada")
 
-        # Validar que no hay conexiones a otras zonas BLOCKED
         for conn in self.get_all_connections():
             if conn.zone_a is None or conn.zone_b is None:
-                raise ValueError(f"Conexión con zona None: {conn}")
-
+                raise ValueError(f"Conexion con zona None: {conn}")
             if (not conn.zone_a.is_accesible()
                     or not conn.zone_b.is_accesible()):
                 raise ValueError(
-                    f"Conexión {conn.zone_a.name}-{conn.zone_b.name} "
+                    f"Conexion {conn.zone_a.name}-{conn.zone_b.name} "
                     "conecta a una zona BLOCKED"
                 )
 
         return True
 
     def reset_occupancy(self) -> None:
-        """ Reinicia la ocupancia de todas las zonas y conexiones a 0
-
-        Útil para preparar la red antes de una nueva simulación
-        """
+        """Reset all zone and connection occupancy to zero."""
         for zone in self.get_all_zones():
             zone.current_occupancy = 0
         for conn in self.get_all_connections():
@@ -213,6 +200,15 @@ class Network(BaseModel):
         zone_a: str,
         zone_b: str,
     ) -> tuple[str, str]:
+        """Create a normalized key for bidirectional connections.
+
+        Args:
+            zone_a: Name of the first zone.
+            zone_b: Name of the second zone.
+
+        Returns:
+            Tuple with zone names in alphabetical order.
+        """
         if zone_a <= zone_b:
             return zone_a, zone_b
         return zone_b, zone_a

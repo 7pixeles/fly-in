@@ -1,115 +1,157 @@
+import argparse
 import sys
 from pathlib import Path
 
-from parser import parse_map
-from utils.exceptions import ParseError, PathfindingError, SimulationError
-from algorithms.pathfinding import find_routes_multidrone
-from simulation import Simulator
+from src.parser import parse_map
+from src.dijkstra import dijkstra
+from src.simulation import Simulator
+from src.visualizer import visualize_simulation
+from src.network import Network
+from src.drone import Drone
+from src.colours import DroneState
+from src.exceptions import ParseError, DijkstraError, SimulationError
+
+
+def find_routes_multidrone(
+    network: Network,
+    drones: list[Drone],
+    verbose: bool = False,
+) -> list["Drone"]:
+    """Assign routes to all drones using multi-drone Dijkstra.
+
+    Processes drones sequentially, passing a usage dict to penalize
+    zones already chosen by earlier drones. This distributes drones
+    across multiple paths to reduce congestion.
+
+    Args:
+        network: The network graph to search.
+        drones: List of drones needing routes.
+        verbose: If True, print warnings for drones with no route.
+
+    Returns:
+        The same list of drones with routes assigned.
+    """
+    usage: dict[str, int] = {}
+
+    for dron in drones:
+        route: list = []
+        try:
+            route = dijkstra(
+                network,
+                dron.current_zone,
+                dron.end_zone,
+                usage=usage,
+            )
+        except DijkstraError:
+            try:
+                route = dijkstra(
+                    network,
+                    dron.current_zone,
+                    dron.end_zone,
+                )
+            except DijkstraError as e:
+                if verbose:
+                    print(
+                        f"Advertencia: No se encontro ruta "
+                        f"para D{dron.id}: {e}", file=sys.stderr)
+                dron.planned_route = []
+                continue
+
+        dron.set_route(route)
+        dron.state = DroneState.IDLE
+        for zone in route[1:-1]:
+            usage[zone.name] = usage.get(zone.name, 0) + 1
+
+    return drones
 
 
 def main(map_path: str) -> int:
-    """ Ejecuta flujo completo.
-    Parámetros:
-        map_path: ruta al archivo .map
+    """Run the full drone simulation pipeline.
 
-    Return:
-        int: código de salida (0 Éxito, 1 Error)"""
+    Parses the map, computes paths with multi-drone Dijkstra,
+    runs the simulation, and displays results with visualization.
 
+    Args:
+        map_path: Path to the map file to process.
+
+    Returns:
+        Exit code: 0 on success, 1 on error.
+    """
     try:
-        # Validar que el archivo existe
         path = Path(map_path)
         if not path.exists():
-            print(f"Error: Archivo {map_path} no encontrado", file=sys.stderr)
+            print(
+                f"Error: Archivo {map_path} no encontrado",
+                file=sys.stderr)
             return 1
 
-        print(f"Cargando mapa: {map_path}")
-        print()
+        print(f"Cargando mapa: {map_path}\n")
 
         print("=== FASE 1: PARSING ===")
         try:
             network, drones, nb_drones = parse_map(str(map_path))
         except ParseError as error:
-            print(f"Error al parsear {error}", file=sys.stderr)
+            print(f"Error al parsear: {error}", file=sys.stderr)
             return 1
 
-        print("✓ Mapa cargado exitosamente")
-        print(f"  • Drones: {nb_drones}")
-        print(f"  • Zonas: {network.get_zone_count()}")
-        print(f"  • Conexiones: {network.get_connection_count()}")
-        print(f"  • Inicio: {network.start_zone.name}")
-        print(f"  • Destino: {network.end_zone.name}")
-        print()
+        print("Mapa cargado exitosamente")
+        print(f"  Drones: {nb_drones}")
+        print(f"  Zonas: {network.get_zone_count()}")
+        print(f"  Conexiones: {network.get_connection_count()}")
+        print(f"  Inicio: {network.start_zone.name}")
+        print(f"  Destino: {network.end_zone.name}\n")
 
         print("=== FASE 2: PATHFINDING ===")
         try:
-            drones_with_routes, estimated_turn = find_routes_multidrone(
-                network,
-                drones,
-                max_iterations=500,
-                verbose=False
-            )
-        except PathfindingError as error:
-            print(f"Error en pathfinding: {error}", file=sys.stderr)
+            drones = find_routes_multidrone(
+                network, drones, verbose=True)
+        except DijkstraError as error:
+            print(
+                f"Error en pathfinding: {error}", file=sys.stderr)
             return 1
 
-        print("✓ Rutas calculadas")
-        print(f"  • Turnos estimados: {estimated_turn}")
-        print("  • Rutas asignadas:")
-        for dron in drones_with_routes:
-            route_str = " → ".join([z.name for z in dron.planned_route])
-            steps = dron.get_steps_remaining()
-            print(f"    - D{dron.id}: {route_str} ({steps} pasos)")
+        for dron in drones:
+            if dron.has_route_planned():
+                route_str = " -> ".join(
+                    [z.name for z in dron.planned_route])
+                steps = dron.get_steps_remaining()
+                print(f"  D{dron.id}: {route_str} ({steps} pasos)")
+            else:
+                print(f"  D{dron.id}: sin ruta")
         print()
 
-        print("=== FASE 3: SIMULACIÓN ===")
+        print("=== FASE 3: SIMULACION ===")
         try:
             simulator = Simulator(verbose=False)
-            lines_start, final_turn, metrics = simulator.exe(
-                network,
-                drones_with_routes
-            )
+            lines, final_turn, metrics = simulator.exe(
+                network, drones)
         except SimulationError as error:
-            print(f"Error en simulación: {error}", file=sys.stderr)
+            print(
+                f"Error en simulacion: {error}", file=sys.stderr)
             return 1
 
-        print("✓ Simulación completada")
-        print()
+        print("Simulacion completada\n")
 
-        print("=== SALIDA DE SIMULACIÓN ===")
-        exit = simulator.get_formatted_exit()
-        print(exit)
+        print("=== SALIDA DE SIMULACION ===")
+        print(simulator.get_formatted_exit())
         print()
 
         print(simulator.get_resume())
         print()
 
-        print("=== VALIDACIÓN ===")
         if final_turn > 0:
-            print(f"✓ Simulación válida: {final_turn} turno(s)")
+            print(f"Simulacion valida: {final_turn} turno(s)")
         else:
-            print("✗ Simulación inválida: 0 turnos", file=sys.stderr)
+            print(
+                "Simulacion invalida: 0 turnos",
+                file=sys.stderr)
             return 1
 
-        if len(lines_start) == final_turn:
-            print(f"✓ Salida consistente: {len(lines_start)} líneas de output")
-        else:
-            print(f"⚠ Inconsistencia: {len(lines_start)} "
-                  f"líneas pero {final_turn} turnos")
-
         print()
+        visualize_simulation(
+            network, drones, lines, final_turn)
+
         return 0
-
-    except ParseError as e:
-        print(f"Error de parsing: {e}", file=sys.stderr)
-        return 1
-
-    except PathfindingError as e:
-        print(f"Error de pathfinding: {e}", file=sys.stderr)
-        return 1
-
-    except SimulationError as e:
-        print(f"Error de simulación: {e}", file=sys.stderr)
-        return 1
 
     except Exception as e:
         print(f"Error inesperado: {e}", file=sys.stderr)
@@ -118,24 +160,9 @@ def main(map_path: str) -> int:
         return 1
 
 
-def print_instructions() -> None:
-    """Imprime instrucciones de uso."""
-    print("Uso: python main.py <archivo_mapa>")
-    print()
-    print("Ejemplo:")
-    print("  python main.py maps/example_complex.map")
-    print()
-    print("Archivos de ejemplo disponibles:")
-    print("  • maps/example_simple_fixed.map - Mapa simple (2 drones)")
-    print("  • maps/example_complex.map - Mapa complejo")
-
-
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print_instructions()
-        sys.exit(1)
-
-    map_path = sys.argv[1]
-
-    exit_code = main(map_path)
-    sys.exit(exit_code)
+    parser = argparse.ArgumentParser(
+        description="Fly-in: Drone simulation pathfinder")
+    parser.add_argument("map_path", help="Path to the map file")
+    args = parser.parse_args()
+    sys.exit(main(args.map_path))

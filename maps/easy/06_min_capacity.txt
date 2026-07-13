@@ -1,0 +1,9 @@
+# Test: Zone cap 3, two connections cap 2 and cap 4 -> effective = 2 (min of connections)
+nb_drones: 6
+
+start_hub: start 0 0 [color=green max_drones=6]
+hub: middle 1 0 [color=orange max_drones=3]
+end_hub: goal 2 0 [color=red max_drones=6]
+
+connection: start-middle [max_link_capacity=2]
+connection: middle-goal [max_link_capacity=4]
