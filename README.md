@@ -117,18 +117,19 @@ Turno 4: D2-goal
 
 ```
 fly-in/
-  main.py           # Entry point and pipeline orchestration
-  parser.py         # Map file parser with validation
-  dijkstra.py       # Pathfinding algorithm
-  simulation.py     # Turn-by-turn simulation engine
-  visualizer.py     # Colored terminal output
-  network.py        # Graph data structure (zones + connections)
-  zone.py           # Zone model with occupancy rules
-  connection.py     # Connection model with capacity
-  drone.py          # Drone model with route tracking
-  colours.py        # Color definitions and drone states
-  exceptions.py     # Custom exception hierarchy
-  maps/             # Test maps organized by difficulty
+  main.py             # Entry point and pipeline orchestration
+  src/
+    parser.py         # Map file parser with validation
+    dijkstra.py       # Pathfinding algorithm
+    simulation.py     # Turn-by-turn simulation engine
+    visualizer.py     # Colored terminal output
+    network.py        # Graph data structure (zones + connections)
+    zone.py           # Zone model with occupancy rules
+    connection.py     # Connection model with capacity
+    drone.py          # Drone model with route tracking
+    colours.py        # Color definitions and drone states
+    exceptions.py     # Custom exception hierarchy
+  maps/               # Test maps organized by difficulty
 ```
 
 ## Map Format
