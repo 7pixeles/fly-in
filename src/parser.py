@@ -49,9 +49,9 @@ class MapParser:
             with open(filepath, "r", encoding="utf-8") as file:
                 lines = file.readlines()
         except FileNotFoundError:
-            raise ParseError(f"Archivo no encontrado: {filepath}")
+            raise ParseError(f"File not found: {filepath}")
         except IOError as error:
-            raise ParseError(f"Error leyendo archivo: {error}")
+            raise ParseError(f"Error reading file: {error}")
 
         for self.line_number, line in enumerate(lines, start=1):
             self._process_line(line.strip())
@@ -85,7 +85,7 @@ class MapParser:
             self._parse_connection_line(line)
         else:
             raise ParseError(
-                f"Linea {self.line_number}: formato desconocido: {line}")
+                f"Line {self.line_number}: format unknown: {line}")
 
     def _parse_nb_drones(self, line: str) -> None:
         """Parse the nb_drones directive.
@@ -101,13 +101,13 @@ class MapParser:
             nb_drones = int(parts[1].strip())
         except ValueError:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"Formato invalido en nb_drones: {line}")
+                f"Line {self.line_number}: "
+                f"Invalid format in nb_drones: {line}")
 
         if nb_drones <= 0:
             raise ParseError(
-                f"Linea {self.line_number}: nb_drones debe ser > 0; "
-                f"recibido: {nb_drones}")
+                f"Line {self.line_number}: nb_drones must be > 0; "
+                f"received: {nb_drones}")
         self.nb_drones = nb_drones
 
     def _parse_start_hub(self, line: str) -> None:
@@ -121,7 +121,7 @@ class MapParser:
         """
         if self.start_zone_name is not None:
             raise ParseError(
-                f"Linea {self.line_number}: Ya hay un start_hub definido")
+                f"Line {self.line_number}: A start_hub is already defined")
         zone = self._parse_zone_definition(line, "start_hub:")
         self.start_zone_name = zone.name
         self.zones[zone.name] = zone
@@ -137,7 +137,7 @@ class MapParser:
         """
         if self.end_zone_name is not None:
             raise ParseError(
-                f"Linea {self.line_number}: Ya hay un end_hub definido")
+                f"Line {self.line_number}: An end_hub is already defined")
         zone = self._parse_zone_definition(line, "end_hub:")
         self.end_zone_name = zone.name
         self.zones[zone.name] = zone
@@ -154,7 +154,7 @@ class MapParser:
         zone = self._parse_zone_definition(line, "hub:")
         if zone.name in self.zones:
             raise ParseError(
-                f"Linea {self.line_number}: Zona '{zone.name}' ya existe")
+                f"Line {self.line_number}: Zone '{zone.name}' already exists")
         self.zones[zone.name] = zone
 
     def _parse_connection_line(self, line: str) -> None:
@@ -171,25 +171,25 @@ class MapParser:
 
         if not content:
             raise ParseError(
-                f"Linea {self.line_number}: connection vacio en {line}")
+                f"Line {self.line_number}: empty connection on {line}")
 
         if "-" not in content:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"Falta guion separador en connection: {line}")
+                f"Line {self.line_number}: "
+                f"Missing hyphen separator in connection: {line}")
 
         parts = content.split("-", 1)
         zone_a_name = parts[0].strip()
 
         if not zone_a_name:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"Nombre de zona A vacio en connection: {line}")
+                f"Line {self.line_number}: "
+                f"Empty Zone A name in connection: {line}")
 
         if " " in zone_a_name or "\t" in zone_a_name:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"Nombre de zona A contiene espacios: {zone_a_name}")
+                f"Line {self.line_number}: "
+                f"Zone A name contains spaces: {zone_a_name}")
 
         rest = parts[1].strip()
 
@@ -203,18 +203,18 @@ class MapParser:
 
         if not zone_b_name:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"Nombre de zona B vacio en connection: {line}")
+                f"Line {self.line_number}: "
+                f"Empty Zone B name in connection: {line}")
 
         if " " in zone_b_name or "\t" in zone_b_name:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"Nombre de zona B contiene espacios: {zone_b_name}")
+                f"Line {self.line_number}: "
+                f"Zone B name contains spaces: {zone_b_name}")
 
         if zone_a_name == zone_b_name:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"Una zona no puede conectarse consigo misma "
+                f"Line {self.line_number}: "
+                f"A zone cannot connect to itself: "
                 f"{zone_a_name}-{zone_b_name}")
 
         metadata = self._parse_metadata(metadata_str)
@@ -222,9 +222,9 @@ class MapParser:
 
         if max_capacity <= 0:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"max_link_capacity debe ser un numero positivo; "
-                f"recibido {max_capacity}")
+                f"Line {self.line_number}: "
+                f"max_link_capacity must be a positive integer; "
+                f"received {max_capacity}")
 
         self.conn_to_add.append(
             (zone_a_name, zone_b_name, max_capacity))
@@ -257,40 +257,40 @@ class MapParser:
         for token in tokens:
             if "=" not in token:
                 raise ParseError(
-                    f"Linea {self.line_number}: "
-                    f"par clave=valor mal formado: {token}")
+                    f"Line {self.line_number}: "
+                    f"malformed key=value pair: {token}")
 
             key, _, value = token.partition("=")
 
             if not key:
                 raise ParseError(
-                    f"Linea {self.line_number}: "
-                    f"Clave no existe para el valor {value}")
+                    f"Line {self.line_number}: "
+                    f"Key does not exist for the value {value}")
 
             for c in key:
                 if not (c.isalpha() or c.isdigit() or c == "_"):
                     raise ParseError(
-                        f"Linea {self.line_number}: "
-                        f"caracter invalido en clave {key}: '{c}'")
+                        f"Line {self.line_number}: "
+                        f"Invalid character in key {key}: '{c}'")
 
             if not value:
                 raise ParseError(
-                    f"Linea {self.line_number}: "
-                    f"Valor vacio para la clave {key}")
+                    f"Line {self.line_number}: "
+                    f"Empty value for the key {key}")
 
             for v in value:
                 if v in ("[", "]"):
                     raise ParseError(
-                        f"Linea {self.line_number}: "
-                        f"'[' o ']' inesperado en valor: {value}")
+                        f"Line {self.line_number}: "
+                        f"Unexpected '[' or ']' in value: {value}")
 
             if key == "zone":
                 try:
                     metadata["zone_type"] = ZoneType[value.upper()]
                 except KeyError:
                     raise ParseError(
-                        f"Linea {self.line_number}: "
-                        f"Tipo de zona desconocido {value}")
+                        f"Line {self.line_number}: "
+                        f"Unknown zone type {value}")
             elif key == "color":
                 metadata["color"] = value
             elif key == "max_drones":
@@ -301,8 +301,8 @@ class MapParser:
                     metadata["max_drones"] = max_drones
                 except ValueError:
                     raise ParseError(
-                        f"Linea {self.line_number}: "
-                        f"max_drones debe ser > 0: {value}")
+                        f"Line {self.line_number}: "
+                        f"max_drones must be > 0: {value}")
             elif key == "max_link_capacity":
                 try:
                     max_cap = int(value)
@@ -311,12 +311,12 @@ class MapParser:
                     metadata["max_link_capacity"] = max_cap
                 except ValueError:
                     raise ParseError(
-                        f"Linea {self.line_number}: "
-                        f"max_capacity debe ser > 0: {value}")
+                        f"Line {self.line_number}: "
+                        f"max_capacity must be > 0: {value}")
             else:
                 raise ParseError(
-                    f"Linea {self.line_number}: "
-                    f"Clave desconocida en metadata: {key}")
+                    f"Line {self.line_number}: "
+                    f"Unknown key in metadata: {key}")
 
         return metadata
 
@@ -339,8 +339,8 @@ class MapParser:
 
         if len(parts) < 3:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"Faltan argumentos en definicion de zona: {line}")
+                f"Line {self.line_number}: "
+                f"Arguments missing in zone definition: {line}")
 
         name = parts[0]
         x_str = parts[1]
@@ -349,16 +349,16 @@ class MapParser:
 
         if "-" in name:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"Nombre de zona no puede contener guiones: {name}")
+                f"Line {self.line_number}: "
+                f"Zone name cannot contain hyphens: {name}")
 
         try:
             x = int(x_str)
             y = int(y_str)
         except ValueError:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"Coordenadas deben ser enteros: {x_str}, {y_str}")
+                f"Line {self.line_number}: "
+                f"Coordinates must be integers: {x_str}, {y_str}")
 
         metadata = self._parse_metadata(metadata_str)
 
@@ -379,8 +379,8 @@ class MapParser:
             )
         except Exception as error:
             raise ParseError(
-                f"Linea {self.line_number}: "
-                f"Error creando zona '{name}': {error}")
+                f"Line {self.line_number}: "
+                f"Error creating zone '{name}': {error}")
 
         return zone
 
@@ -393,29 +393,29 @@ class MapParser:
                 or duplicate connections are found.
         """
         if self.start_zone_name is None:
-            raise ParseError("No se definio start_hub en el mapa")
+            raise ParseError("Start_hub was not defined in the map")
         if self.end_zone_name is None:
-            raise ParseError("No se definio end_hub en el mapa")
+            raise ParseError("end_hub was not defined in the map")
         if self.nb_drones <= 0:
-            raise ParseError("No se definio nb_drones en el mapa")
+            raise ParseError("nb_drones was not defined in the map")
         if self.start_zone_name == self.end_zone_name:
             raise ParseError(
-                "start_hub y end_hub deben ser zonas distintas")
+                "start_hub and end_hub must be different zones")
 
         for zone_a, zone_b, _ in self.conn_to_add:
             if zone_a not in self.zones:
                 raise ParseError(
-                    f"Zona '{zone_a}' en connection no existe")
+                    f"Zone '{zone_a}' in connection does not exist")
             if zone_b not in self.zones:
                 raise ParseError(
-                    f"Zona '{zone_b}' en connection no existe")
+                    f"Zone '{zone_b}' in connection does not exist")
 
         seen_connections: set[tuple[str, str]] = set()
         for zone_a, zone_b, _ in self.conn_to_add:
             connection_key = (min(zone_a, zone_b), max(zone_a, zone_b))
             if connection_key in seen_connections:
                 raise ParseError(
-                    f"Conexion duplicada: '{zone_a}' - '{zone_b}'")
+                    f"Duplicate connection: '{zone_a}' - '{zone_b}'")
             seen_connections.add(connection_key)
 
     def _build_network(self) -> Network:
@@ -430,7 +430,7 @@ class MapParser:
         """
         try:
             if self.start_zone_name is None or self.end_zone_name is None:
-                raise ParseError("Falta start_hub o end_hub")
+                raise ParseError("start_hub or end_hub is missing")
 
             start = self.zones[self.start_zone_name]
             end = self.zones[self.end_zone_name]
@@ -450,7 +450,7 @@ class MapParser:
         except ParseError:
             raise
         except Exception as error:
-            raise ParseError(f"Error construyendo Network: {error}")
+            raise ParseError(f"Error building Network: {error}")
 
     def _create_drones(self, network: Network) -> list[Drone]:
         """Create drone instances positioned at the start zone.

@@ -37,16 +37,16 @@ def dijkstra(
 
     if not start_zone.is_accesible():
         raise DijkstraError(
-            f"La zona de inicio '{start_zone.name}' no es accesible.")
+            f"The start zone '{start_zone.name}' is not accessible.")
     if not end_zone.is_accesible():
         raise DijkstraError(
-            f"La zona de destino '{end_zone.name}' no es accesible.")
+            f"The destination zone '{end_zone.name}' is not accessible.")
     if start_zone.name in blocked_zones:
         raise DijkstraError(
-            f"La zona de inicio '{start_zone.name}' esta bloqueada.")
+            f"The start zone '{start_zone.name}' is blocked.")
     if end_zone.name in blocked_zones:
         raise DijkstraError(
-            f"La zona de destino '{end_zone.name}' esta bloqueada.")
+            f"The destination zone '{end_zone.name}' is blocked.")
 
     distances: dict[str, float] = {}
     previous: dict[str, str | None] = {}
@@ -63,10 +63,10 @@ def dijkstra(
 
     if start_zone.name not in distances:
         raise DijkstraError(
-            f"La zona de inicio '{start_zone.name}' no esta en la red.")
+            f"The start zone '{start_zone.name}' is not in the network.")
     if end_zone.name not in distances:
         raise DijkstraError(
-            f"La zona de destino '{end_zone.name}' no esta en la red.")
+            f"The destination zone '{end_zone.name}' is not in the network.")
 
     distances[start_zone.name] = 0
 
@@ -81,8 +81,8 @@ def dijkstra(
 
         if min_distance == float('inf'):
             raise DijkstraError(
-                f"No hay camino entre "
-                f"'{start_zone.name}' y '{end_zone.name}'.")
+                f"There is not path between "
+                f"'{start_zone.name}' and '{end_zone.name}'.")
 
         if current_zone_name == end_zone.name:
             path: list[Zone] = []
@@ -91,7 +91,7 @@ def dijkstra(
                 obj_zone = network.get_zone(current_node)
                 if obj_zone is None:
                     raise DijkstraError(
-                        f"Zona '{current_node}' no encontrada en la red.")
+                        f"Zone '{current_node}' not found in the network.")
                 path.append(obj_zone)
                 current_node = previous[current_node]
             return path[::-1]
@@ -102,7 +102,7 @@ def dijkstra(
 
         if current_zone is None:
             raise DijkstraError(
-                f"Zona '{current_zone_name}' no encontrada en la red.")
+                f"Zone '{current_zone_name}' not found in the network.")
 
         for neighbor in network.get_neighbors(current_zone):
             if neighbor.name in blocked_zones:
@@ -121,4 +121,4 @@ def dijkstra(
                 previous[neighbor.name] = current_zone_name
 
     raise DijkstraError(
-        f"No hay camino entre '{start_zone.name}' y '{end_zone.name}'.")
+        f"There is no path between '{start_zone.name}' and '{end_zone.name}'.")

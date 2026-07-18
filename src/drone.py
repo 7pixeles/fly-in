@@ -87,14 +87,14 @@ class Drone(BaseModel):
                 does not match the expected next position.
         """
         if not self.has_route_planned():
-            raise ValueError(f"Dron {self.id} no tiene ruta planeada")
+            raise ValueError(f"Drone {self.id} has no planned route")
 
         expected_next = self.get_next_zone()
         if next_zone != expected_next:
             raise ValueError(
-                f"Intento de mover a {next_zone.name}, "
-                f"pero el siguiente paso es "
-                f"{expected_next.name if expected_next else 'ninguno'}"
+                f"Trying to move to {next_zone.name}, "
+                f"but the next step is "
+                f"{expected_next.name if expected_next else 'none'}"
             )
 
         self.planned_route = self.planned_route[1:]

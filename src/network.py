@@ -38,7 +38,7 @@ class Network(BaseModel):
         """
         if zone.name in self.zones:
             raise ValueError(
-                f"Ya existe una zona con el mismo nombre: {zone.name}")
+                f"A zone with the same name already exists: {zone.name}")
         self.zones[zone.name] = zone
 
     def add_connection(
@@ -56,15 +56,16 @@ class Network(BaseModel):
                 connection already exists.
         """
         if zone_a.name not in self.zones:
-            raise ValueError(f"'{zone_a.name}' no existe en la red")
+            raise ValueError(f"'{zone_a.name}' doesn't exist on the network")
         if zone_b.name not in self.zones:
-            raise ValueError(f"'{zone_b.name}' no existe en la red")
+            raise ValueError(f"'{zone_b.name}' doesn't exist on the network")
 
         key = self._normalize_connection_key(zone_a.name, zone_b.name)
 
         if key in self.conn:
             raise ValueError(
-                f"Ya existe una conexion entre '{zone_a.name}'-'{zone_b.name}'"
+                "There is already a connection between "
+                f"'{zone_a.name}'-'{zone_b.name}'"
             )
 
         current_zone_a = self.zones[zone_a.name]
@@ -166,24 +167,24 @@ class Network(BaseModel):
         """
         if self.start_zone.name not in self.zones:
             raise ValueError(
-                f"{self.start_zone.name} no esta en la red de zonas")
+                f"{self.start_zone.name} it is not in the zone network.")
         if self.end_zone.name not in self.zones:
             raise ValueError(
-                f"{self.end_zone.name} no esta en la red de zonas")
+                f"{self.end_zone.name} it is not in the zone network.")
 
         if not self.start_zone.is_accesible():
-            raise ValueError("start_zone no puede estar bloqueada")
+            raise ValueError("start_zone cannot be blocked.")
         if not self.end_zone.is_accesible():
-            raise ValueError("end_zone no puede estar bloqueada")
+            raise ValueError("end_zone cannot be blocked.")
 
         for conn in self.get_all_connections():
             if conn.zone_a is None or conn.zone_b is None:
-                raise ValueError(f"Conexion con zona None: {conn}")
+                raise ValueError(f"Connection to None zone: {conn}")
             if (not conn.zone_a.is_accesible()
                     or not conn.zone_b.is_accesible()):
                 raise ValueError(
-                    f"Conexion {conn.zone_a.name}-{conn.zone_b.name} "
-                    "conecta a una zona BLOCKED"
+                    f"Connection {conn.zone_a.name}-{conn.zone_b.name} "
+                    "connects to a BLOCKED zone"
                 )
 
         return True

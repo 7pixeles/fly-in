@@ -87,7 +87,7 @@ class Zone(BaseModel):
             ValueError: If the zone is blocked (inaccessible).
         """
         if self.zone_type == ZoneType.BLOCKED:
-            raise ValueError(f"Zona bloqueada: {self.name}")
+            raise ValueError(f"Blocked Zone: {self.name}")
         cost: int = self.zone_type.value
         return cost
 

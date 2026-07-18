@@ -1,5 +1,6 @@
 import argparse
 import sys
+from typing import Any
 from pathlib import Path
 
 from src.parser import parse_map
@@ -34,7 +35,7 @@ def find_routes_multidrone(
     usage: dict[str, int] = {}
 
     for dron in drones:
-        route: list = []
+        route: list[Any] = []
         try:
             route = dijkstra(
                 network,
@@ -51,9 +52,8 @@ def find_routes_multidrone(
                 )
             except DijkstraError as e:
                 if verbose:
-                    print(
-                        f"Advertencia: No se encontro ruta "
-                        f"para D{dron.id}: {e}", file=sys.stderr)
+                    print("Warning: No route found"
+                          f"for D{dron.id}: {e}", file=sys.stderr)
                 dron.planned_route = []
                 continue
 
@@ -81,33 +81,33 @@ def main(map_path: str) -> int:
         path = Path(map_path)
         if not path.exists():
             print(
-                f"Error: Archivo {map_path} no encontrado",
+                f"Error: File {map_path} not found",
                 file=sys.stderr)
             return 1
 
-        print(f"Cargando mapa: {map_path}\n")
+        print(f"Loading map: {map_path}\n")
 
-        print("=== FASE 1: PARSING ===")
+        print("=== PHASE 1: PARSING ===")
         try:
             network, drones, nb_drones = parse_map(str(map_path))
         except ParseError as error:
-            print(f"Error al parsear: {error}", file=sys.stderr)
+            print(f"Error parsing: {error}", file=sys.stderr)
             return 1
 
-        print("Mapa cargado exitosamente")
-        print(f"  Drones: {nb_drones}")
-        print(f"  Zonas: {network.get_zone_count()}")
-        print(f"  Conexiones: {network.get_connection_count()}")
-        print(f"  Inicio: {network.start_zone.name}")
-        print(f"  Destino: {network.end_zone.name}\n")
+        print("Map loaded successfully")
+        print(f" Drones: {nb_drones}")
+        print(f" Zones: {network.get_zone_count()}")
+        print(f" Connections: {network.get_connection_count()}")
+        print(f" Start: {network.start_zone.name}")
+        print(f" Destination: {network.end_zone.name}\n")
 
-        print("=== FASE 2: PATHFINDING ===")
+        print("=== PHASE 2: PATHFINDING ===")
         try:
             drones = find_routes_multidrone(
                 network, drones, verbose=True)
         except DijkstraError as error:
             print(
-                f"Error en pathfinding: {error}", file=sys.stderr)
+                f"Pathfinding error: {error}", file=sys.stderr)
             return 1
 
         for dron in drones:
@@ -115,24 +115,24 @@ def main(map_path: str) -> int:
                 route_str = " -> ".join(
                     [z.name for z in dron.planned_route])
                 steps = dron.get_steps_remaining()
-                print(f"  D{dron.id}: {route_str} ({steps} pasos)")
+                print(f"  D{dron.id}: {route_str} ({steps} steps)")
             else:
-                print(f"  D{dron.id}: sin ruta")
+                print(f"  D{dron.id}: without route")
         print()
 
-        print("=== FASE 3: SIMULACION ===")
+        print("=== PHASE 3: SIMULATION ===")
         try:
             simulator = Simulator(verbose=False)
             lines, final_turn, metrics = simulator.exe(
                 network, drones)
         except SimulationError as error:
             print(
-                f"Error en simulacion: {error}", file=sys.stderr)
+                f"Error in Simulation: {error}", file=sys.stderr)
             return 1
 
-        print("Simulacion completada\n")
+        print("Simulation completed\n")
 
-        print("=== SALIDA DE SIMULACION ===")
+        print("=== SIMULATION OUTPUT ===")
         print(simulator.get_formatted_exit())
         print()
 
@@ -140,10 +140,10 @@ def main(map_path: str) -> int:
         print()
 
         if final_turn > 0:
-            print(f"Simulacion valida: {final_turn} turno(s)")
+            print(f"Valid simulation: {final_turn} turn(s)")
         else:
             print(
-                "Simulacion invalida: 0 turnos",
+                "Invalid simulation: 0 turns",
                 file=sys.stderr)
             return 1
 
@@ -154,7 +154,7 @@ def main(map_path: str) -> int:
         return 0
 
     except Exception as e:
-        print(f"Error inesperado: {e}", file=sys.stderr)
+        print(f"Unexpected error: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc()
         return 1

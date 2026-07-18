@@ -60,7 +60,7 @@ class Simulator:
             final_turn += 1
             if final_turn > max_turns:
                 raise SimulationError(
-                    f"Simulacion excedio {max_turns} turnos")
+                    f"Simulation exceeded {max_turns} turns")
 
             turn_output = self._run_turn(network, drones, final_turn)
             self.simulation_turn.append(turn_output)
@@ -69,8 +69,8 @@ class Simulator:
                 turns_without_movement += 1
                 if turns_without_movement >= max_without_movement:
                     raise SimulationError(
-                        f"Deadlock: sin movimiento por "
-                        f"{max_without_movement} turnos")
+                        f"Deadlock: no movement for "
+                        f"{max_without_movement} turns")
             else:
                 turns_without_movement = 0
 

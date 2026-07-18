@@ -49,20 +49,20 @@ def print_network(network: Network) -> None:
     Args:
         network: The network to display.
     """
-    print(f"\n{BOLD}=== RED DE ZONAS ==={RESET}")
+    print(f"\n{BOLD}=== NETWORK ==={RESET}")
     for zone in network.get_all_zones():
         c = get_zone_color(zone)
         t = zone.zone_type.name
         extra = ""
         if zone.zone_type != ZoneType.BLOCKED:
-            extra = f" (cap:{zone.max_drones})"
-        print(f"  {c}{zone.name}{RESET} [{t}]{extra}"
+            extra = f" (capacity:{zone.max_drones})"
+        print(f"  {c}{zone.name:<15}{RESET} [{t}]{extra}"
               f" ({zone.x},{zone.y})")
 
-    print(f"\n{BOLD}=== CONEXIONES ==={RESET}")
+    print(f"\n{BOLD}=== CONNECTIONS ==={RESET}")
     for conn in network.get_all_connections():
         print(f"  {conn.zone_a.name} <-> {conn.zone_b.name}"
-              f" (cap:{conn.max_capacity})")
+              f" (capacity:{conn.max_capacity})")
     print()
 
 
@@ -74,9 +74,9 @@ def print_drones(drones: list[Drone]) -> None:
     """
     print(f"{BOLD}=== DRONES ==={RESET}")
     for dron in drones:
-        print(f"  D{dron.id} en {dron.current_zone.name}"
-              f" [{dron.state.value}]"
-              f" pasos_rest:{dron.get_steps_remaining()}")
+        print(f"  D{dron.id} in {dron.current_zone.name},"
+              f" [{dron.state.value}],"
+              f" remaining steps:{dron.get_steps_remaining()}")
     print()
 
 
@@ -91,11 +91,12 @@ def print_turn(
         drones: List of drones (for context).
     """
     if not output:
-        print(f"{DIM}Turno {turn_num}: (sin movimientos){RESET}")
+        print(f"{DIM}Turn {turn_num}: (without movements){RESET}")
         return
 
     parts = output.split(" ")
     colored_parts: list[str] = []
+    
     for part in parts:
         if part.startswith("D"):
             dash_idx = part.index("-")
@@ -104,7 +105,7 @@ def print_turn(
             colored_parts.append(
                 f"{Color.YELLOW.value[1]}{drone_id}{RESET}"
                 f"-{Color.GREEN.value[1]}{target}{RESET}")
-    print(f"Turno {turn_num}: {' '.join(colored_parts)}")
+    print(f"Turn {turn_num}: {' '.join(colored_parts)}")
 
 
 def print_drone_positions(drones: list[Drone]) -> None:
@@ -140,13 +141,13 @@ def visualize_simulation(
         final_turn: Total number of turns executed.
     """
     print(f"\n{BOLD}{'=' * 50}{RESET}")
-    print(f"{BOLD}  SIMULACION - {final_turn} turnos{RESET}")
+    print(f"{BOLD}  SIMULATION - {final_turn} turnos{RESET}")
     print(f"{BOLD}{'=' * 50}{RESET}\n")
 
     print_network(network)
     print_drones(drones)
 
-    print(f"{BOLD}=== EJECUCION ==={RESET}")
+    print(f"{BOLD}=== EXECUTION ==={RESET}")
     for i, turn_output in enumerate(simulation_output, start=1):
         print_turn(i, turn_output, drones)
     print()
