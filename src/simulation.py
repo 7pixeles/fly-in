@@ -47,7 +47,7 @@ class Simulator:
         for dron in drones:
             if not dron.has_route_planned():
                 raise SimulationError(
-                    f"Dron {dron.id} no tiene ruta planeada")
+                    f"Dron {dron.id} has no planned route")
 
         self.simulation_turn = []
         initial_costs = {d.id: d.get_steps_remaining() for d in drones}
@@ -378,14 +378,19 @@ class Simulator:
             return "No hay simulacion ejecutada"
 
         resume = [
-            "=== RESUMEN DE SIMULACION ===",
-            f"Turnos totales: {self.metrics['final_turn']}",
+            "=== SIMULATION SUMMARY ===",
+            f"Total turns: {self.metrics['final_turn']}",
             f"Drones: {self.metrics['drones_totales']}",
-            f"Total de movimientos: {self.metrics['total_movements']}",
-            "Promedio de movimientos/turno: "
+
+            f"Total movements: {self.metrics['total_movements']}",
+
+            "Average movements/turn: "
             f"{self.metrics['average_moves_turn']}",
-            f"Costo total de rutas: {self.metrics['total_cost']}",
-            "Promedio de pasos/dron: "
+
+            f"Total route cost: {self.metrics['total_cost']}",
+
+            "Average steps/drone: "
             f"{self.metrics['average_steps_dron']}",
-        ]
+
+            ]
         return "\n".join(resume)

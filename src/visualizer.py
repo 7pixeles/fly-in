@@ -39,6 +39,15 @@ RAINBOW_COLORS: list[str] = [
 ]
 
 RESET = "\033[0m"
+
+
+def colorize_rainbow(text: str) -> str:
+    return "".join(
+        f"{RAINBOW_COLORS[i % len(RAINBOW_COLORS)]}{ch}{RESET}"
+        for i, ch in enumerate(text)
+    )
+
+
 BOLD = "\033[1m"
 DIM = "\033[2m"
 
@@ -78,12 +87,16 @@ def print_network(network: Network) -> None:
     """
     print(f"\n{BOLD}=== NETWORK ==={RESET}")
     for zone in network.get_all_zones():
-        c = get_zone_color(zone)
+        if zone.color == "rainbow":
+            name_display = f"{colorize_rainbow(zone.name):<15}"
+        else:
+            color = get_zone_color(zone)
+            name_display = f"{color}{zone.name:<15}{RESET}"
         t = zone.zone_type.name
         extra = ""
         if zone.zone_type != ZoneType.BLOCKED:
             extra = f" (capacity:{zone.max_drones})"
-        print(f"  {c}{zone.name:<15}{RESET} [{t}]{extra}"
+        print(f"  {name_display} [{t}]{extra}"
               f" ({zone.x},{zone.y})")
 
     print(f"\n{BOLD}=== CONNECTIONS ==={RESET}")
@@ -142,10 +155,14 @@ def print_drone_positions(drones: list[Drone]) -> None:
         drones: List of drones to display.
     """
     for dron in drones:
-        c = get_zone_color(dron.current_zone)
+        if dron.current_zone.color == "rainbow":
+            name_display = colorize_rainbow(dron.current_zone.name)
+        else:
+            c = get_zone_color(dron.current_zone)
+            name_display = f"{c}{dron.current_zone.name}{RESET}"
         state = dron.state.value
         print(
-            f"  D{dron.id}: {c}{dron.current_zone.name}{RESET}"
+            f"  D{dron.id}: {name_display}"
             f" [{state}]"
         )
 
