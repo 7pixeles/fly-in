@@ -356,7 +356,7 @@ class Simulator:
             "average_moves_turn": round(avg_moves, 2),
             "total_cost": total_cost,
             "average_steps_dron": round(avg_steps, 2),
-            "drones_totales": len(drones),
+            "total_drones": len(drones),
         }
 
     def get_formatted_exit(self) -> str:
@@ -380,7 +380,7 @@ class Simulator:
         resume = [
             "=== SIMULATION SUMMARY ===",
             f"Total turns: {self.metrics['final_turn']}",
-            f"Drones: {self.metrics['drones_totales']}",
+            f"Drones: {self.metrics['total_drones']}",
 
             f"Total movements: {self.metrics['total_movements']}",
 

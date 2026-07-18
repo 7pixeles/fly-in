@@ -43,8 +43,8 @@ RESET = "\033[0m"
 
 def colorize_rainbow(text: str) -> str:
     return "".join(
-        f"{RAINBOW_COLORS[i % len(RAINBOW_COLORS)]}{ch}{RESET}"
-        for i, ch in enumerate(text)
+        f"{RAINBOW_COLORS[i % len(RAINBOW_COLORS)]}{char}{RESET}"
+        for i, char in enumerate(text)
     )
 
 
@@ -99,10 +99,10 @@ def print_network(network: Network) -> None:
         print(f"  {name_display} [{t}]{extra}"
               f" ({zone.x},{zone.y})")
 
-    print(f"\n{BOLD}=== CONNECTIONS ==={RESET}")
-    for conn in network.get_all_connections():
-        print(f"  {conn.zone_a.name} <-> {conn.zone_b.name}"
-              f" (capacity:{conn.max_capacity})")
+    # print(f"\n{BOLD}=== CONNECTIONS ==={RESET}")
+    # for conn in network.get_all_connections():
+    #     print(f"  {conn.zone_a.name} <-> {conn.zone_b.name}"
+    #           f" (capacity:{conn.max_capacity})")
     print()
 
 
