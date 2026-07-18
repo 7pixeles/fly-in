@@ -1,3 +1,5 @@
+import random
+
 from src.zone import Zone, ZoneType
 from src.network import Network
 from src.colours import Color
@@ -11,9 +13,30 @@ COLOR_MAP: dict[str, str] = {
     "yellow": Color.YELLOW.value[1],
     "purple": Color.PURPLE.value[1],
     "orange": Color.ORANGE.value[1],
+    "crimson": Color.CRIMSON.value[1],
+    "black": Color.BLACK.value[1],
+    "brown": Color.BROWN.value[1],
+    "maroon": Color.MAROON.value[1],
+    "gold": Color.GOLD.value[1],
+    "darkred": Color.DARKRED.value[1],
+    "violet": Color.VIOLET.value[1],
+    "cyan": "\033[36m",
+    "lime": "\033[92m",
+    "magenta": "\033[95m",
     "gray": "\033[90m",
     "grey": "\033[90m",
 }
+
+RAINBOW_COLORS: list[str] = [
+    Color.RED.value[1],
+    Color.ORANGE.value[1],
+    Color.YELLOW.value[1],
+    Color.GREEN.value[1],
+    Color.BLUE.value[1],
+    Color.PURPLE.value[1],
+    Color.CRIMSON.value[1],
+    Color.VIOLET.value[1],
+]
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
@@ -24,7 +47,8 @@ def get_zone_color(zone: Zone) -> str:
     """Get the ANSI color code for a zone.
 
     Uses the zone's explicit color if defined, otherwise falls back
-    to a default color based on the zone type.
+    to a default color based on the zone type. If the zone color is
+    'rainbow', a random color is selected from the rainbow palette.
 
     Args:
         zone: The zone to get the color for.
@@ -32,8 +56,11 @@ def get_zone_color(zone: Zone) -> str:
     Returns:
         ANSI escape sequence string for the zone's color.
     """
-    if zone.color and zone.color in COLOR_MAP:
-        return COLOR_MAP[zone.color]
+    if zone.color:
+        if zone.color == "rainbow":
+            return random.choice(RAINBOW_COLORS)
+        if zone.color in COLOR_MAP:
+            return COLOR_MAP[zone.color]
     type_colors = {
         ZoneType.NORMAL: Color.BLUE.value[1],
         ZoneType.RESTRICTED: Color.RED.value[1],
@@ -96,7 +123,7 @@ def print_turn(
 
     parts = output.split(" ")
     colored_parts: list[str] = []
-    
+
     for part in parts:
         if part.startswith("D"):
             dash_idx = part.index("-")
